@@ -9,7 +9,6 @@ export default function AdminPanel() {
         name: '', price: '', category: 'Brankas Baru', height: '', length: '', width: '', weight: '', weightUnit: 'kg', image1: '', image2: ''
     });
     const [loadingProduct, setLoadingProduct] = useState(false);
-
     // State untuk Banner
     const [bannerImage, setBannerImage] = useState('');
     const [loadingBanner, setLoadingBanner] = useState(false);
@@ -48,14 +47,12 @@ export default function AdminPanel() {
     const submitBanner = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!bannerImage) return alert('Pilih gambar banner terlebih dahulu!');
-
         setLoadingBanner(true);
         const res = await fetch('/api/banner', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ image: bannerImage })
         });
-
         if (res.ok) alert('Banner berhasil diupdate!');
         else alert('Gagal update banner');
         setLoadingBanner(false);
@@ -65,14 +62,12 @@ export default function AdminPanel() {
     const submitProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.image1) return alert('Gambar utama produk wajib diunggah!');
-
         setLoadingProduct(true);
         const res = await fetch('/api/products', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
         });
-
         if (res.ok) {
             alert('Produk berhasil ditambahkan!');
             setFormData({ name: '', price: '', category: 'Brankas Baru', height: '', length: '', width: '', weight: '', weightUnit: 'kg', image1: '', image2: '' });
@@ -88,7 +83,6 @@ export default function AdminPanel() {
     return (
         <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 font-sans">
             <div className="max-w-3xl mx-auto space-y-8">
-
                 {/* Header Navigation */}
                 <div className="flex justify-between items-center mb-4">
                     <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Admin Panel</h1>
@@ -105,7 +99,6 @@ export default function AdminPanel() {
                         <h2 className="text-xl font-bold text-gray-900">Ubah Banner Utama</h2>
                         <p className="text-sm text-gray-500 mt-1">Ganti gambar banner besar yang tampil di halaman depan website.</p>
                     </div>
-
                     <form onSubmit={submitBanner} className="space-y-4">
                         <div>
                             <input
@@ -131,16 +124,18 @@ export default function AdminPanel() {
                     </form>
                 </div>
 
-                {/* SECTION 2: UPLOAD PRODUK (Form lama yang sudah Anda rapikan) */}
+                {/* SECTION 2: UPLOAD PRODUK */}
                 <div className="bg-white p-8 sm:p-10 shadow-lg shadow-gray-200/50 rounded-2xl border border-gray-100">
                     <div className="mb-6 border-b pb-4">
                         <h2 className="text-xl font-bold text-gray-900">Tambah Produk Baru</h2>
                         <p className="text-sm text-gray-500 mt-1">Masukkan data spesifikasi brankas baru ke dalam katalog.</p>
                     </div>
-
                     <form onSubmit={submitProduct} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label className={labelClass}>Nama Produk</label><input required type="text" className={inputClass} placeholder="Contoh: Guardian Safe UK60" onChange={e => setFormData({ ...formData, name: e.target.value })} value={formData.name} /></div>
+                            <div>
+                                <label className={labelClass}>Nama Produk</label>
+                                <input required type="text" className={inputClass} placeholder="Contoh: Guardian Safe UK60" onChange={e => setFormData({ ...formData, name: e.target.value })} value={formData.name} />
+                            </div>
                             <div>
                                 <label className={labelClass}>Kategori</label>
                                 <select className={inputClass} onChange={e => setFormData({ ...formData, category: e.target.value })} value={formData.category}>
@@ -158,33 +153,44 @@ export default function AdminPanel() {
                             </div>
                         </div>
 
-                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-4">
+                        <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-5">
                             <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Spesifikasi Fisik</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div><label className={labelClass}>Tinggi (cm)</label><input required type="number" className={inputClass} placeholder="60" onChange={e => setFormData({ ...formData, height: e.target.value })} value={formData.height} /></div>
-                                <div><label className={labelClass}>Panjang (cm)</label><input required type="number" className={inputClass} placeholder="52" onChange={e => setFormData({ ...formData, length: e.target.value })} value={formData.length} /></div>
-                                <div><label className={labelClass}>Lebar (cm)</label><input required type="number" className={inputClass} placeholder="58" onChange={e => setFormData({ ...formData, width: e.target.value })} value={formData.width} /></div>
+
+                            <div className="grid grid-cols-3 gap-4">
                                 <div>
-                  <label className={labelClass}>Berat</label>
-                  <div className="flex gap-2 mt-1">
-                    <input
-                      required
-                      type="number"
-                      className={`${inputClass} mt-0`}
-                      placeholder="250"
-                      onChange={e => setFormData({...formData, weight: e.target.value})}
-                      value={formData.weight}
-                    />
-                    <select
-                      className={`${inputClass} mt-0 w-24 shrink-0`}
-                      onChange={e => setFormData({...formData, weightUnit: e.target.value})}
-                      value={formData.weightUnit}
-                    >
-                      <option value="kg">kg</option>
-                      <option value="ton">ton</option>
-                    </select>
-                  </div>
-                </div>
+                                    <label className={labelClass}>Tinggi (cm)</label>
+                                    <input required type="number" className={inputClass} placeholder="60" onChange={e => setFormData({ ...formData, height: e.target.value })} value={formData.height} />
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Panjang (cm)</label>
+                                    <input required type="number" className={inputClass} placeholder="52" onChange={e => setFormData({ ...formData, length: e.target.value })} value={formData.length} />
+                                </div>
+                                <div>
+                                    <label className={labelClass}>Lebar (cm)</label>
+                                    <input required type="number" className={inputClass} placeholder="58" onChange={e => setFormData({ ...formData, width: e.target.value })} value={formData.width} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className={labelClass}>Berat</label>
+                                <div className="flex gap-3 mt-1">
+                                    <input
+                                        required
+                                        type="number"
+                                        className={`${inputClass} mt-0 flex-1`}
+                                        placeholder="250"
+                                        onChange={e => setFormData({ ...formData, weight: e.target.value })}
+                                        value={formData.weight}
+                                    />
+                                    <select
+                                        className={`${inputClass} mt-0 w-32 shrink-0`}
+                                        onChange={e => setFormData({ ...formData, weightUnit: e.target.value })}
+                                        value={formData.weightUnit}
+                                    >
+                                        <option value="kg">Kilogram (kg)</option>
+                                        <option value="ton">Ton</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -209,7 +215,6 @@ export default function AdminPanel() {
                         </button>
                     </form>
                 </div>
-
             </div>
         </div>
     );
