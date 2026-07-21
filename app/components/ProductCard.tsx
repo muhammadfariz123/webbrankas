@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Product } from '@prisma/client';
 
 export default function ProductCard({ product }: { product: Product }) {
+  const mainImage = product.images[0];
   return (
     <Link href={`/produk/${product.id}`} className="group block">
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col h-full">
@@ -16,14 +17,15 @@ export default function ProductCard({ product }: { product: Product }) {
           >
             {product.category === 'Brankas Baru' ? 'Baru' : 'Second'}
           </span>
-
-          <img
-            src={product.image1}
-            alt={product.name}
-            className="max-w-full max-h-full w-auto h-auto object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
-          />
-
-          {/* Overlay muncul dari bawah ke atas saat hover */}
+          {mainImage ? (
+            <img
+              src={mainImage}
+              alt={product.name}
+              className="max-w-full max-h-full w-auto h-auto object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <span className="text-xs text-gray-400">Tidak ada gambar</span>
+          )}
           <div className="absolute inset-x-0 bottom-0 bg-gray-900/90 text-white px-4 py-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
             <p className="text-[11px] text-gray-200 leading-relaxed mb-2">
               T{product.height}×P{product.length}×L{product.width} cm &middot; ±{product.weight} {product.weightUnit}
@@ -33,7 +35,6 @@ export default function ProductCard({ product }: { product: Product }) {
             </span>
           </div>
         </div>
-
         <div className="p-4 flex flex-col flex-1">
           <h4 className="text-sm font-bold text-gray-800 mb-1 line-clamp-2">{product.name}</h4>
           <p className="text-xs text-gray-400 mb-3">

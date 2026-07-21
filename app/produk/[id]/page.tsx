@@ -14,7 +14,6 @@ type Props = {
 export default async function ProductDetail({ params }: Props) {
   const resolvedParams = await params;
   const productId = parseInt(resolvedParams.id);
-
   const product = await prisma.product.findUnique({
     where: { id: productId },
   });
@@ -36,7 +35,6 @@ export default async function ProductDetail({ params }: Props) {
   return (
     <div className="min-h-screen bg-white font-sans text-gray-800">
       <Navbar />
-
       <div className="bg-[#f8f9fa] py-4 px-4 md:px-8 text-sm text-gray-500 border-b border-gray-100">
         <div className="max-w-7xl mx-auto flex gap-2">
           <Link href="/" className="hover:text-gray-900">Home</Link>
@@ -46,18 +44,15 @@ export default async function ProductDetail({ params }: Props) {
           <span className="text-gray-900 font-semibold">{product.name}</span>
         </div>
       </div>
-
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-10 flex flex-col md:flex-row gap-10">
         <div className="w-full md:w-[38%] flex flex-col">
-          <ProductGallery image1={product.image1} image2={product.image2} name={product.name} />
-
+          <ProductGallery images={product.images} name={product.name} />
           <div className="bg-[#f8f9fa] rounded-xl border border-gray-200 mt-6 p-6 text-center">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Harga</p>
             <h2 className="text-3xl font-extrabold text-red-600 tracking-tight">
               Rp {product.price.toLocaleString('id-ID')},-
             </h2>
           </div>
-
           <a href={waLink} target="_blank" rel="noopener noreferrer" className="mt-6">
             <button className="w-full bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold py-4 text-sm tracking-widest uppercase transition-colors shadow-sm flex justify-center items-center gap-2 rounded-lg">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -67,7 +62,6 @@ export default async function ProductDetail({ params }: Props) {
             </button>
           </a>
         </div>
-
         <div className="w-full md:w-[62%] bg-white border border-gray-200 rounded-xl p-8 self-start">
           <span
             className={`inline-block text-[10px] font-bold uppercase px-2 py-1 rounded-full mb-3 ${
@@ -77,12 +71,10 @@ export default async function ProductDetail({ params }: Props) {
             {product.category}
           </span>
           <h1 className="text-2xl font-extrabold uppercase text-gray-900 mb-6">{product.name}</h1>
-
           <p className="text-sm text-gray-600 leading-relaxed mb-8">
             Brankas berkualitas dengan spesifikasi presisi untuk memenuhi kebutuhan keamanan optimal Anda.
             Hubungi kami melalui WhatsApp untuk informasi ketersediaan stok terbaru.
           </p>
-
           <div className="flex flex-col border-t border-gray-200 text-sm">
             <div className="flex py-4 border-b border-gray-100">
               <span className="w-1/3 font-bold text-gray-800">Kategori</span>
@@ -107,7 +99,6 @@ export default async function ProductDetail({ params }: Props) {
           </div>
         </div>
       </div>
-
       {relatedProducts.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 md:px-8 pb-16 border-t border-gray-100 pt-12">
           <h3 className="text-xl font-extrabold text-gray-900 mb-6">Produk Relevan</h3>
@@ -118,7 +109,6 @@ export default async function ProductDetail({ params }: Props) {
           </div>
         </div>
       )}
-
       <Footer />
     </div>
   );

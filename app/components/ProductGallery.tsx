@@ -3,18 +3,18 @@
 import { useState, useRef } from 'react';
 
 export default function ProductGallery({
-  image1,
-  image2,
+  images,
   name,
 }: {
-  image1: string;
-  image2: string | null;
+  images: string[];
   name: string;
 }) {
-  const [activeImage, setActiveImage] = useState(image1);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const activeImage = images[activeIndex] ?? images[0];
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
@@ -23,6 +23,14 @@ export default function ProductGallery({
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     setZoomPosition({ x, y });
   };
+
+  if (!activeImage) {
+    return (
+      <div className="bg-[#f4f4f4] rounded-xl h-80 md:h-96 flex items-center justify-center border border-gray-100 text-gray-400 text-sm">
+        Belum ada gambar
+      </div>
+    );
+  }
 
   return (
     <>
@@ -38,8 +46,6 @@ export default function ProductGallery({
           alt={name}
           className="max-w-full max-h-full w-auto h-auto object-contain mix-blend-multiply pointer-events-none"
         />
-
-        {/* Lensa kaca pembesar bulat */}
         {isZooming && (
           <div
             className="hidden md:block absolute w-40 h-40 rounded-full border-2 border-white shadow-2xl pointer-events-none"
@@ -56,30 +62,25 @@ export default function ProductGallery({
           />
         )}
       </div>
-
-      {image2 && (
-        <div className="flex gap-2 mt-4">
-          <button
-            onClick={() => setActiveImage(image1)}
-            className={`w-20 h-20 bg-[#f4f4f4] rounded-lg border p-2 flex items-center justify-center overflow-hidden transition ${
-              activeImage === image1
-                ? 'border-gray-900 opacity-100'
-                : 'border-gray-200 opacity-70 hover:opacity-100'
-            }`}
-          >
-            <img src={image1} alt="Thumb 1" className="max-w-full max-h-full w-auto h-auto object-contain mix-blend-multiply" />
-          </button>
-
-          <button
-            onClick={() => setActiveImage(image2)}
-            className={`w-20 h-20 bg-[#f4f4f4] rounded-lg border p-2 flex items-center justify-center overflow-hidden transition ${
-              activeImage === image2
-                ? 'border-gray-900 opacity-100'
-                : 'border-gray-200 opacity-70 hover:opacity-100'
-            }`}
-          >
-            <img src={image2} alt="Thumb 2" className="max-w-full max-h-full w-auto h-auto object-contain mix-blend-multiply" />
-          </button>
+      {images.length > 1 && (
+        <div className="flex gap-2 mt-4 flex-wrap">
+          {images.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveIndex(idx)}
+              className={`w-20 h-20 bg-[#f4f4f4] rounded-lg border p-2 flex items-center justify-center overflow-hidden transition ${
+                idx === activeIndex
+                  ? 'border-gray-900 opacity-100'
+                  : 'border-gray-200 opacity-70 hover:opacity-100'
+              }`}
+            >
+              <img
+                src={img}
+                alt={`${name} - ${idx + 1}`}
+                className="max-w-full max-h-full w-auto h-auto object-contain mix-blend-multiply"
+              />
+            </button>
+          ))}
         </div>
       )}
     </>
