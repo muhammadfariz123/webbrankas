@@ -9,17 +9,18 @@ datasource db {
 }
 
 model Product {
-  id        Int      @id @default(autoincrement())
-  name      String
-  price     Int
-  category  String
-  height    Int
-  length    Int
-  width     Int
-  weight    Int
-  image1    String
-  image2    String?
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  name       String
+  price      Int
+  category   String
+  height     Int
+  length     Int
+  width      Int
+  weight     Int
+  weightUnit String   @default("kg")
+  image1     String
+  image2     String?
+  createdAt  DateTime @default(now())
 }
 
 model Banner {

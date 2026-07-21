@@ -26,7 +26,7 @@ export default function ProductCard({ product }: { product: Product }) {
           {/* Overlay muncul dari bawah ke atas saat hover */}
           <div className="absolute inset-x-0 bottom-0 bg-gray-900/90 text-white px-4 py-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
             <p className="text-[11px] text-gray-200 leading-relaxed mb-2">
-              T{product.height}×P{product.length}×L{product.width} cm &middot; ±{product.weight}kg
+              T{product.height}×P{product.length}×L{product.width} cm &middot; ±{product.weight} {product.weightUnit}
             </p>
             <span className="inline-block text-[11px] font-bold uppercase tracking-wide border border-white/40 rounded-full px-3 py-1 group-hover:bg-white group-hover:text-gray-900 transition">
               Lihat Detail

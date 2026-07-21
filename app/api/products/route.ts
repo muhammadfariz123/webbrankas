@@ -22,6 +22,7 @@ export async function POST(request: Request) {
       length: parseInt(body.length),
       width: parseInt(body.width),
       weight: parseInt(body.weight),
+      weightUnit: body.weightUnit || 'kg',
       image1: body.image1,
       image2: body.image2 || null,
     },

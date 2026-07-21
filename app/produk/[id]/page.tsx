@@ -30,7 +30,7 @@ export default async function ProductDetail({ params }: Props) {
   });
 
   const waNumber = '6285741444444';
-  const message = `Halo Guardian Safe, saya tertarik dengan produk *${product.name}* (${product.category}).\n\nHarga: Rp ${product.price.toLocaleString('id-ID')}\nUkuran: T:${product.height}cm P:${product.length}cm L:${product.width}cm\nBerat: ±${product.weight}kg\n\nApakah stoknya masih tersedia?`;
+  const message = `Halo Guardian Safe, saya tertarik dengan produk *${product.name}* (${product.category}).\n\nHarga: Rp ${product.price.toLocaleString('id-ID')}\nUkuran: T:${product.height}cm P:${product.length}cm L:${product.width}cm\nBerat: ±${product.weight} ${product.weightUnit}\n\nApakah stoknya masih tersedia?`;
   const waLink = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
 
   return (
@@ -96,7 +96,7 @@ export default async function ProductDetail({ params }: Props) {
             </div>
             <div className="flex py-4 border-b border-gray-100">
               <span className="w-1/3 font-bold text-gray-800">Berat</span>
-              <span className="w-2/3 text-gray-600">± {product.weight} kg</span>
+              <span className="w-2/3 text-gray-600">± {product.weight} {product.weightUnit}</span>
             </div>
             <div className="flex py-4 border-b border-gray-100">
               <span className="w-1/3 font-bold text-gray-800">Kondisi</span>
