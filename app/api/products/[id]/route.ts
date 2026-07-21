@@ -28,7 +28,7 @@ export async function PUT(request: Request, { params }: Params) {
         height: parseInt(body.height, 10),
         length: parseInt(body.length, 10),
         width: parseInt(body.width, 10),
-        weight: parseInt(body.weight, 10),
+        weight: parseFloat(body.weight),
         weightUnit: body.weightUnit || 'kg',
         images: body.images || [],
       },

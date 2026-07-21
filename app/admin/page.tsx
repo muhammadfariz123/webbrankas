@@ -31,7 +31,17 @@ const emptyForm = {
 // Hanya menerima digit — mencegah nilai berubah sendiri (scroll/spinner) & memastikan
 // apa yang diketik = apa yang tersimpan
 const onlyDigits = (value: string) => value.replace(/[^0-9]/g, '');
-
+// Untuk berat: boleh digit + SATU tanda desimal (titik atau koma), misal "1.5" atau "1,5"
+const onlyDecimal = (value: string) => {
+    let v = value.replace(/[^0-9.,]/g, '');
+    const sepIndex = v.search(/[.,]/);
+    if (sepIndex !== -1) {
+        const before = v.slice(0, sepIndex + 1);
+        const after = v.slice(sepIndex + 1).replace(/[.,]/g, '');
+        v = before + after;
+    }
+    return v;
+};
 export default function AdminPanel() {
     const [formData, setFormData] = useState(emptyForm);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -114,19 +124,17 @@ export default function AdminPanel() {
         else alert('Gagal update banner');
         setLoadingBanner(false);
     };
-
     const submitProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.images.length === 0) return alert('Minimal 1 gambar produk wajib diunggah!');
         setLoadingProduct(true);
-
         const url = editingId ? `/api/products/${editingId}` : '/api/products';
         const method = editingId ? 'PUT' : 'POST';
-
+        const payload = { ...formData, weight: formData.weight.replace(',', '.') };
         const res = await fetch(url, {
             method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData),
+            body: JSON.stringify(payload),
         });
 
         if (res.ok) {
@@ -337,11 +345,10 @@ export default function AdminPanel() {
                                         <input
                                             required
                                             type="text"
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
+                                            inputMode="decimal"
                                             className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-gray-800 focus:border-gray-800 outline-none transition-colors"
-                                            placeholder="250"
-                                            onChange={(e) => setFormData({ ...formData, weight: onlyDigits(e.target.value) })}
+                                            placeholder="250 atau 1,5"
+                                            onChange={(e) => setFormData({ ...formData, weight: onlyDecimal(e.target.value) })}
                                             value={formData.weight}
                                         />
                                     </div>
