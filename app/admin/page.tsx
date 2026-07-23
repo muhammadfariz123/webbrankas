@@ -31,6 +31,7 @@ const emptyForm = {
 // Hanya menerima digit — mencegah nilai berubah sendiri (scroll/spinner) & memastikan
 // apa yang diketik = apa yang tersimpan
 const onlyDigits = (value: string) => value.replace(/[^0-9]/g, '');
+
 // Untuk berat: boleh digit + SATU tanda desimal (titik atau koma), misal "1.5" atau "1,5"
 const onlyDecimal = (value: string) => {
     let v = value.replace(/[^0-9.,]/g, '');
@@ -42,16 +43,17 @@ const onlyDecimal = (value: string) => {
     }
     return v;
 };
+
 export default function AdminPanel() {
     const [formData, setFormData] = useState(emptyForm);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [loadingProduct, setLoadingProduct] = useState(false);
-
     const [products, setProducts] = useState<ProductItem[]>([]);
     const [loadingList, setLoadingList] = useState(true);
-
     const [bannerImage, setBannerImage] = useState('');
     const [loadingBanner, setLoadingBanner] = useState(false);
+    const [uploadingImages, setUploadingImages] = useState(false);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
 
     const fetchProducts = async () => {
         setLoadingList(true);
@@ -69,11 +71,27 @@ export default function AdminPanel() {
         fetchProducts();
     }, []);
 
+    // Kompresi + resize gambar sebelum disimpan sebagai base64 — supaya ukuran file jauh lebih kecil
     const convertToBase64 = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
+            reader.onload = () => {
+                const img = new Image();
+                img.src = reader.result as string;
+                img.onload = () => {
+                    const MAX_WIDTH = 1000;
+                    const scale = Math.min(1, MAX_WIDTH / img.width);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const compressed = canvas.toDataURL('image/jpeg', 0.75);
+                    resolve(compressed);
+                };
+                img.onerror = reject;
+            };
             reader.onerror = (error) => reject(error);
         });
     };
@@ -81,7 +99,7 @@ export default function AdminPanel() {
     const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 2 * 1024 * 1024) return alert('Ukuran gambar maksimal 2MB.');
+            if (file.size > 5 * 1024 * 1024) return alert('Ukuran gambar maksimal 5MB.');
             const base64 = await convertToBase64(file);
             setBannerImage(base64);
         }
@@ -91,17 +109,22 @@ export default function AdminPanel() {
     const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
-        const newImages: string[] = [];
-        for (const file of Array.from(files)) {
-            if (file.size > 2 * 1024 * 1024) {
-                alert(`${file.name} dilewati karena melebihi 2MB.`);
-                continue;
+        setUploadingImages(true);
+        try {
+            const newImages: string[] = [];
+            for (const file of Array.from(files)) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alert(`${file.name} dilewati karena melebihi 5MB.`);
+                    continue;
+                }
+                const base64 = await convertToBase64(file);
+                newImages.push(base64);
             }
-            const base64 = await convertToBase64(file);
-            newImages.push(base64);
+            setFormData((prev) => ({ ...prev, images: [...prev.images, ...newImages] }));
+        } finally {
+            setUploadingImages(false);
+            e.target.value = '';
         }
-        setFormData((prev) => ({ ...prev, images: [...prev.images, ...newImages] }));
-        e.target.value = '';
     };
 
     const removeImage = (index: number) => {
@@ -115,37 +138,43 @@ export default function AdminPanel() {
         e.preventDefault();
         if (!bannerImage) return alert('Pilih gambar banner terlebih dahulu!');
         setLoadingBanner(true);
-        const res = await fetch('/api/banner', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: bannerImage }),
-        });
-        if (res.ok) alert('Banner berhasil diupdate!');
-        else alert('Gagal update banner');
-        setLoadingBanner(false);
+        try {
+            const res = await fetch('/api/banner', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: bannerImage }),
+            });
+            if (res.ok) alert('Banner berhasil diupdate!');
+            else alert('Gagal update banner');
+        } finally {
+            setLoadingBanner(false);
+        }
     };
+
     const submitProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.images.length === 0) return alert('Minimal 1 gambar produk wajib diunggah!');
         setLoadingProduct(true);
-        const url = editingId ? `/api/products/${editingId}` : '/api/products';
-        const method = editingId ? 'PUT' : 'POST';
-        const payload = { ...formData, weight: formData.weight.replace(',', '.') };
-        const res = await fetch(url, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-        });
-
-        if (res.ok) {
-            alert(editingId ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan!');
-            setFormData(emptyForm);
-            setEditingId(null);
-            fetchProducts();
-        } else {
-            alert('Gagal menyimpan produk');
+        try {
+            const url = editingId ? `/api/products/${editingId}` : '/api/products';
+            const method = editingId ? 'PUT' : 'POST';
+            const payload = { ...formData, weight: formData.weight.replace(',', '.') };
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (res.ok) {
+                alert(editingId ? 'Produk berhasil diperbarui!' : 'Produk berhasil ditambahkan!');
+                setFormData(emptyForm);
+                setEditingId(null);
+                fetchProducts();
+            } else {
+                alert('Gagal menyimpan produk');
+            }
+        } finally {
+            setLoadingProduct(false);
         }
-        setLoadingProduct(false);
     };
 
     const startEdit = (product: ProductItem) => {
@@ -171,18 +200,30 @@ export default function AdminPanel() {
 
     const deleteProduct = async (id: number) => {
         if (!confirm('Yakin ingin menghapus produk ini? Tindakan ini tidak bisa dibatalkan.')) return;
-        const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-            fetchProducts();
-            if (editingId === id) cancelEdit();
-        } else {
-            alert('Gagal menghapus produk');
+        setDeletingId(id);
+        try {
+            const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchProducts();
+                if (editingId === id) cancelEdit();
+            } else {
+                alert('Gagal menghapus produk');
+            }
+        } finally {
+            setDeletingId(null);
         }
     };
 
     const inputClass =
         'w-full mt-1 px-4 py-3 rounded-lg border border-gray-300 text-gray-900 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-gray-800 focus:border-gray-800 outline-none transition-colors';
     const labelClass = 'block text-sm font-semibold text-gray-700';
+
+    const Spinner = ({ className = 'h-5 w-5 text-white' }: { className?: string }) => (
+        <svg className={`animate-spin ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+    );
 
     return (
         <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 font-sans">
@@ -208,8 +249,9 @@ export default function AdminPanel() {
                             <input
                                 type="file"
                                 accept="image/png, image/jpeg, image/jpg, image/webp"
-                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 onChange={handleBannerUpload}
+                                disabled={loadingBanner}
                             />
                             {bannerImage && (
                                 <div className="mt-4">
@@ -221,8 +263,9 @@ export default function AdminPanel() {
                         <button
                             type="submit"
                             disabled={loadingBanner}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl font-bold transition-all shadow-md disabled:bg-gray-400"
+                            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl font-bold transition-all shadow-md disabled:bg-blue-400 disabled:cursor-not-allowed"
                         >
+                            {loadingBanner && <Spinner />}
                             {loadingBanner ? 'Menyimpan Banner...' : 'Simpan Banner'}
                         </button>
                     </form>
@@ -243,13 +286,13 @@ export default function AdminPanel() {
                             <button
                                 type="button"
                                 onClick={cancelEdit}
-                                className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                disabled={loadingProduct}
+                                className="px-4 py-2 text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Batal Edit
                             </button>
                         )}
                     </div>
-
                     <form onSubmit={submitProduct} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -261,6 +304,7 @@ export default function AdminPanel() {
                                     placeholder="Contoh: Guardian Safe UK60"
                                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     value={formData.name}
+                                    disabled={loadingProduct}
                                 />
                             </div>
                             <div>
@@ -269,13 +313,13 @@ export default function AdminPanel() {
                                     className={inputClass}
                                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                     value={formData.category}
+                                    disabled={loadingProduct}
                                 >
                                     <option value="Brankas Baru">Brankas Baru</option>
                                     <option value="Brankas Second">Brankas Second</option>
                                 </select>
                             </div>
                         </div>
-
                         <div>
                             <label className={labelClass}>Harga (Rp)</label>
                             <div className="relative mt-1">
@@ -291,10 +335,10 @@ export default function AdminPanel() {
                                     placeholder="5900000"
                                     onChange={(e) => setFormData({ ...formData, price: onlyDigits(e.target.value) })}
                                     value={formData.price}
+                                    disabled={loadingProduct}
                                 />
                             </div>
                         </div>
-
                         <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 space-y-5">
                             <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Spesifikasi Fisik</h3>
                             <div className="grid grid-cols-3 gap-4">
@@ -309,6 +353,7 @@ export default function AdminPanel() {
                                         placeholder="60"
                                         onChange={(e) => setFormData({ ...formData, height: onlyDigits(e.target.value) })}
                                         value={formData.height}
+                                        disabled={loadingProduct}
                                     />
                                 </div>
                                 <div>
@@ -322,6 +367,7 @@ export default function AdminPanel() {
                                         placeholder="52"
                                         onChange={(e) => setFormData({ ...formData, length: onlyDigits(e.target.value) })}
                                         value={formData.length}
+                                        disabled={loadingProduct}
                                     />
                                 </div>
                                 <div>
@@ -335,6 +381,7 @@ export default function AdminPanel() {
                                         placeholder="58"
                                         onChange={(e) => setFormData({ ...formData, width: onlyDigits(e.target.value) })}
                                         value={formData.width}
+                                        disabled={loadingProduct}
                                     />
                                 </div>
                             </div>
@@ -346,17 +393,19 @@ export default function AdminPanel() {
                                             required
                                             type="text"
                                             inputMode="decimal"
-                                            className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-gray-800 focus:border-gray-800 outline-none transition-colors"
+                                            className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-gray-800 focus:border-gray-800 outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             placeholder="250 atau 1,5"
                                             onChange={(e) => setFormData({ ...formData, weight: onlyDecimal(e.target.value) })}
                                             value={formData.weight}
+                                            disabled={loadingProduct}
                                         />
                                     </div>
                                     <div className="w-32 shrink-0">
                                         <select
-                                            className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-gray-800 focus:border-gray-800 outline-none transition-colors"
+                                            className="w-full px-4 py-3 rounded-lg border border-gray-300 text-gray-900 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-gray-800 focus:border-gray-800 outline-none transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                             onChange={(e) => setFormData({ ...formData, weightUnit: e.target.value })}
                                             value={formData.weightUnit}
+                                            disabled={loadingProduct}
                                         >
                                             <option value="kg">Kg</option>
                                             <option value="ton">Ton</option>
@@ -365,19 +414,25 @@ export default function AdminPanel() {
                                 </div>
                             </div>
                         </div>
-
                         <div className="bg-white p-6 rounded-xl border border-gray-200 space-y-4">
                             <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
                                 Gambar Produk <span className="text-red-500">*</span>
                             </h3>
-                            <p className="text-xs text-gray-500">Bisa pilih beberapa file gambar sekaligus (maks 2MB per gambar).</p>
+                            <p className="text-xs text-gray-500">Bisa pilih beberapa file gambar sekaligus (maks 5MB per gambar).</p>
                             <input
                                 type="file"
                                 multiple
                                 accept="image/png, image/jpeg, image/jpg, image/webp"
-                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer"
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 onChange={handleImagesUpload}
+                                disabled={loadingProduct || uploadingImages}
                             />
+                            {uploadingImages && (
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <Spinner className="h-4 w-4 text-gray-500" />
+                                    Memproses gambar...
+                                </div>
+                            )}
                             {formData.images.length > 0 && (
                                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-2">
                                     {formData.images.map((img, idx) => (
@@ -386,7 +441,8 @@ export default function AdminPanel() {
                                             <button
                                                 type="button"
                                                 onClick={() => removeImage(idx)}
-                                                className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow"
+                                                disabled={loadingProduct}
+                                                className="absolute -top-2 -right-2 bg-red-600 hover:bg-red-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold shadow disabled:opacity-50 disabled:cursor-not-allowed"
                                                 aria-label="Hapus gambar"
                                             >
                                                 ×
@@ -396,12 +452,12 @@ export default function AdminPanel() {
                                 </div>
                             )}
                         </div>
-
                         <button
                             type="submit"
                             disabled={loadingProduct}
-                            className="w-full bg-gray-900 hover:bg-gray-800 text-white p-4 rounded-xl font-bold text-lg transition-all shadow-md disabled:bg-gray-400"
+                            className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white p-4 rounded-xl font-bold text-lg transition-all shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
+                            {loadingProduct && <Spinner />}
                             {loadingProduct
                                 ? 'Menyimpan...'
                                 : editingId
@@ -417,9 +473,11 @@ export default function AdminPanel() {
                         <h2 className="text-xl font-bold text-gray-900">Daftar Produk</h2>
                         <p className="text-sm text-gray-500 mt-1">Kelola produk yang sudah ditambahkan ke katalog.</p>
                     </div>
-
                     {loadingList ? (
-                        <p className="text-sm text-gray-500 py-6 text-center">Memuat produk...</p>
+                        <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-500">
+                            <Spinner className="h-4 w-4 text-gray-500" />
+                            Memuat produk...
+                        </div>
                     ) : products.length === 0 ? (
                         <p className="text-sm text-gray-500 py-6 text-center">Belum ada produk.</p>
                     ) : (
@@ -427,7 +485,9 @@ export default function AdminPanel() {
                             {products.map((p) => (
                                 <div
                                     key={p.id}
-                                    className="flex items-center gap-4 border border-gray-200 rounded-xl p-3"
+                                    className={`flex items-center gap-4 border border-gray-200 rounded-xl p-3 transition-opacity ${
+                                        deletingId === p.id ? 'opacity-50 pointer-events-none' : ''
+                                    }`}
                                 >
                                     <div className="w-16 h-16 bg-[#f4f4f4] rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                                         {p.images[0] ? (
@@ -445,15 +505,18 @@ export default function AdminPanel() {
                                     <div className="flex gap-2 shrink-0">
                                         <button
                                             onClick={() => startEdit(p)}
-                                            className="px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
+                                            disabled={deletingId === p.id}
+                                            className="px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                             Edit
                                         </button>
                                         <button
                                             onClick={() => deleteProduct(p.id)}
-                                            className="px-3 py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition"
+                                            disabled={deletingId === p.id}
+                                            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            Hapus
+                                            {deletingId === p.id && <Spinner className="h-3.5 w-3.5 text-red-700" />}
+                                            {deletingId === p.id ? 'Menghapus...' : 'Hapus'}
                                         </button>
                                     </div>
                                 </div>
