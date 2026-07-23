@@ -1,5 +1,6 @@
 // src/app/api/products/route.ts
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '../../lib/prisma';
 
 export async function GET() {
@@ -24,5 +25,9 @@ export async function POST(request: Request) {
       images: body.images || [],
     },
   });
+
+  // Refresh cache homepage instan begitu produk baru ditambahkan
+  revalidatePath('/');
+
   return NextResponse.json(product);
 }

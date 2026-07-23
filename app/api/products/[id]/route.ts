@@ -1,5 +1,6 @@
 // src/app/api/products/[id]/route.ts
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import prisma from '../../../lib/prisma';
 
 type Params = { params: Promise<{ id: string }> };
@@ -33,6 +34,11 @@ export async function PUT(request: Request, { params }: Params) {
         images: body.images || [],
       },
     });
+
+    // Refresh cache homepage & halaman detail produk ini
+    revalidatePath('/');
+    revalidatePath(`/produk/${id}`);
+
     return NextResponse.json(product);
   } catch (error) {
     console.error(error);
@@ -44,6 +50,11 @@ export async function DELETE(request: Request, { params }: Params) {
   const { id } = await params;
   try {
     await prisma.product.delete({ where: { id: parseInt(id, 10) } });
+
+    // Refresh cache homepage begitu produk dihapus
+    revalidatePath('/');
+    revalidatePath(`/produk/${id}`);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);

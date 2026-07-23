@@ -4,6 +4,7 @@ import { Product } from '@prisma/client';
 
 export default function ProductCard({ product }: { product: Product }) {
   const mainImage = product.images[0];
+
   return (
     <Link href={`/produk/${product.id}`} className="group block">
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-xl transition-all overflow-hidden flex flex-col h-full">
@@ -21,6 +22,8 @@ export default function ProductCard({ product }: { product: Product }) {
             <img
               src={mainImage}
               alt={product.name}
+              loading="lazy"
+              decoding="async"
               className="max-w-full max-h-full w-auto h-auto object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
             />
           ) : (

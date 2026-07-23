@@ -13,7 +13,6 @@ export default function ProductGallery({
   const [isZooming, setIsZooming] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 });
   const containerRef = useRef<HTMLDivElement>(null);
-
   const activeImage = images[activeIndex] ?? images[0];
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -44,6 +43,8 @@ export default function ProductGallery({
         <img
           src={activeImage}
           alt={name}
+          loading="eager"
+          decoding="async"
           className="max-w-full max-h-full w-auto h-auto object-contain mix-blend-multiply pointer-events-none"
         />
         {isZooming && (
@@ -77,6 +78,8 @@ export default function ProductGallery({
               <img
                 src={img}
                 alt={`${name} - ${idx + 1}`}
+                loading="lazy"
+                decoding="async"
                 className="max-w-full max-h-full w-auto h-auto object-contain mix-blend-multiply"
               />
             </button>
