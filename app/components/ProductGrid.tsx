@@ -1,6 +1,6 @@
 // src/app/components/ProductGrid.tsx
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Product } from '@prisma/client';
 import ProductCard from './ProductCard';
 
@@ -28,21 +28,25 @@ export default function ProductGrid({
   const [activeCategory, setActiveCategory] = useState(
     TABS.includes(initialCategory) ? initialCategory : 'Semua'
   );
-  const [activePriceRange, setActivePriceRange] = useState(0); // index dari PRICE_RANGES
+  const [activePriceRange, setActivePriceRange] = useState(0);
   const [customMin, setCustomMin] = useState('');
   const [customMax, setCustomMax] = useState('');
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
 
+  // Sinkronkan ulang activeCategory setiap kali prop initialCategory berubah
+  // (misal user klik link kategori dari Navbar saat sudah berada di halaman ini)
+  useEffect(() => {
+    setActiveCategory(TABS.includes(initialCategory) ? initialCategory : 'Semua');
+  }, [initialCategory]);
+
   const filtered = useMemo(() => {
     let result = products;
 
-    // Filter kategori
     if (activeCategory !== 'Semua') {
       result = result.filter((p) => p.category === activeCategory);
     }
 
-    // Filter harga
     if (useCustomRange) {
       const min = customMin ? parseInt(customMin, 10) : 0;
       const max = customMax ? parseInt(customMax, 10) : Infinity;
@@ -122,7 +126,6 @@ export default function ProductGrid({
 
         {showPriceFilter && (
           <div className="mt-3 p-5 bg-white border border-gray-200 rounded-xl space-y-4">
-            {/* Preset range */}
             <div>
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Pilihan Cepat</p>
               <div className="flex flex-wrap gap-2">
@@ -147,7 +150,6 @@ export default function ProductGrid({
               </div>
             </div>
 
-            {/* Custom range */}
             <div className="pt-2 border-t border-gray-100">
               <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Atau Masukkan Rentang Sendiri</p>
               <div className="flex items-center gap-2">
